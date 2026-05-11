@@ -72,6 +72,7 @@
             sharedUUID: 'e44e3a48-0b42-42ed-ac28-b3b96d378837',       // Your WirelessTag shared UUID
             sensorIndex: 0,                             // Which sensor to display (0 = first sensor)
             refreshInterval: 60000,                     // Refresh every 60 seconds (60000 ms)
+            corsProxy: 'https://api.allorigins.win/raw?url=',  // CORS proxy service
             debug: true                                 // Set to false to hide debug messages
         };
 
@@ -92,40 +93,50 @@
                 debugLog('Fetching temperature data...');
                 debugLog('Using shared UUID:', CONFIG.sharedUUID);
                 
-                // Fetch data from shared UUID endpoint
-                const url = `https://my.wirelesstag.net/eth/ps.asmx/GetSharedTagDataByGUID?guid=${CONFIG.sharedUUID}`;
+                // Build the WirelessTag API URL
+                const apiUrl = `https://my.wirelesstag.net/eth/st.asmx/GetStatsRaw?uuid=${CONFIG.sharedUUID}`;
+                
+                // Use CORS proxy to fetch data
+                const url = `${CONFIG.corsProxy}${encodeURIComponent(apiUrl)}`;
                 debugLog('Request URL:', url);
                 
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
+                const response = await fetch(url);
 
                 debugLog('Response status:', response.status);
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status}. Make sure your tag is shared publicly and the UUID is correct.`);
                 }
 
                 const text = await response.text();
-                debugLog('Response text:', text);
+                debugLog('Response text (first 200 chars):', text.substring(0, 200));
                 
-                const data = JSON.parse(text);
+                // Parse XML response
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, "text/xml");
+                
+                // Extract JSON from XML wrapper
+                const jsonString = xmlDoc.querySelector('string')?.textContent;
+                
+                if (!jsonString) {
+                    throw new Error('Could not parse response. The UUID might be invalid or the tag is not shared.');
+                }
+                
+                debugLog('JSON string extracted from XML');
+                const data = JSON.parse(jsonString);
                 debugLog('Parsed data:', data);
                 
-                if (data && data.d && data.d.length > 0) {
-                    debugLog('Number of sensors found:', data.d.length);
+                if (data && data.length > 0) {
+                    debugLog('Number of sensors found:', data.length);
                     
                     // Get the specified sensor (default to first one)
-                    const sensor = data.d[CONFIG.sensorIndex];
+                    const sensor = data[CONFIG.sensorIndex];
                     
                     if (sensor) {
                         debugLog('Sensor data:', sensor);
                         
                         // Temperature is in Celsius, convert to Fahrenheit
-                        const tempC = sensor.temperature;
+                        const tempC = sensor.temp;
                         const tempF = (tempC * 9/5) + 32;
                         
                         debugLog(`Temperature: ${tempC}°C = ${tempF.toFixed(1)}°F`);
@@ -135,7 +146,7 @@
                             `${tempF.toFixed(1)}°F`;
                         
                         // Update last communication time
-                        const lastUpdate = new Date(sensor.lastComm * 1000);
+                        const lastUpdate = new Date(sensor.time * 1000);
                         document.getElementById('last-update').textContent = 
                             `Last updated: ${lastUpdate.toLocaleString()}`;
                             
