@@ -12,7 +12,7 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #000000;    /* Change background color here */
+            background-color: #000000;
             font-family: Arial, sans-serif;
             overflow: hidden;
         }
@@ -24,18 +24,17 @@
         }
 
         .temperature {
-            /* CUSTOMIZE THESE VALUES */
-            font-size: 200px;        /* Change this number to adjust size */
-            color: #00FF00;          /* Change this color code (currently bright green) */
+            font-size: 200px;
+            color: #00FF00;
             font-weight: bold;
             margin: 0;
             line-height: 1;
-            text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);  /* Optional glow effect */
+            text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
         }
 
         .label {
-            font-size: 48px;         /* Change label size here */
-            color: #FFFFFF;          /* Change label color here */
+            font-size: 48px;
+            color: #FFFFFF;
             margin-bottom: 30px;
             font-weight: 300;
         }
@@ -67,13 +66,12 @@
     </div>
 
     <script>
-        // CONFIGURATION - Update with your shared UUID
         const CONFIG = {
-            sharedUUID: 'e44e3a48-0b42-42ed-ac28-b3b96d378837',       // Your WirelessTag shared UUID
-            sensorIndex: 0,                             // Which sensor to display (0 = first sensor)
-            refreshInterval: 60000,                     // Refresh every 60 seconds (60000 ms)
-            corsProxy: 'https://api.allorigins.win/raw?url=',  // CORS proxy service
-            debug: true                                 // Set to false to hide debug messages
+            sharedUUID: 'e44e3a48-0b42-42ed-ac28-b3b96d378837',
+            sensorIndex: 0,
+            refreshInterval: 60000,
+            corsProxy: 'https://api.allorigins.win/raw?url=',
+            debug: true
         };
 
         function debugLog(message, data = null) {
@@ -82,92 +80,73 @@
             }
         }
 
-        // Get temperature data using shared UUID
         async function getTemperature() {
             try {
-                // Validate UUID is set
-                if (CONFIG.sharedUUID === 'YOUR_SHARED_UUID_HERE') {
-                    throw new Error('Please update sharedUUID in CONFIG section');
-                }
-
                 debugLog('Fetching temperature data...');
                 debugLog('Using shared UUID:', CONFIG.sharedUUID);
                 
-                // Build the WirelessTag API URL
                 const apiUrl = `https://my.wirelesstag.net/eth/st.asmx/GetStatsRaw?uuid=${CONFIG.sharedUUID}`;
-                
-                // Use CORS proxy to fetch data
                 const url = `${CONFIG.corsProxy}${encodeURIComponent(apiUrl)}`;
-                debugLog('Request URL:', url);
+                
+                debugLog('Full request URL:', url);
                 
                 const response = await fetch(url);
-
                 debugLog('Response status:', response.status);
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}. Make sure your tag is shared publicly and the UUID is correct.`);
+                    throw new Error(`HTTP ${response.status}: Check UUID and sharing settings`);
                 }
 
                 const text = await response.text();
-                debugLog('Response text (first 200 chars):', text.substring(0, 200));
+                debugLog('Response received, length:', text.length);
                 
-                // Parse XML response
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(text, "text/xml");
                 
-                // Extract JSON from XML wrapper
                 const jsonString = xmlDoc.querySelector('string')?.textContent;
                 
                 if (!jsonString) {
-                    throw new Error('Could not parse response. The UUID might be invalid or the tag is not shared.');
+                    debugLog('Raw response:', text.substring(0, 500));
+                    throw new Error('Could not extract data. Check console for raw response.');
                 }
                 
-                debugLog('JSON string extracted from XML');
                 const data = JSON.parse(jsonString);
-                debugLog('Parsed data:', data);
+                debugLog('Data parsed successfully. Sensors found:', data.length);
                 
                 if (data && data.length > 0) {
-                    debugLog('Number of sensors found:', data.length);
-                    
-                    // Get the specified sensor (default to first one)
                     const sensor = data[CONFIG.sensorIndex];
                     
                     if (sensor) {
                         debugLog('Sensor data:', sensor);
                         
-                        // Temperature is in Celsius, convert to Fahrenheit
                         const tempC = sensor.temp;
                         const tempF = (tempC * 9/5) + 32;
                         
                         debugLog(`Temperature: ${tempC}°C = ${tempF.toFixed(1)}°F`);
                         
-                        // Update display
-                        document.getElementById('temp-display').innerHTML = 
-                            `${tempF.toFixed(1)}°F`;
+                        document.getElementById('temp-display').innerHTML = `${tempF.toFixed(1)}°F`;
                         
-                        // Update last communication time
                         const lastUpdate = new Date(sensor.time * 1000);
                         document.getElementById('last-update').textContent = 
                             `Last updated: ${lastUpdate.toLocaleString()}`;
                             
                         debugLog('Display updated successfully');
                     } else {
-                        throw new Error(`Sensor at index ${CONFIG.sensorIndex} not found`);
+                        throw new Error(`Sensor ${CONFIG.sensorIndex} not found`);
                     }
                 } else {
-                    throw new Error('No sensor data found for this UUID');
+                    throw new Error('No sensor data found');
                 }
             } catch (error) {
-                console.error('Error fetching temperature:', error);
+                console.error('Error:', error);
                 document.getElementById('temp-display').innerHTML = 
                     `<span class="error">Error: ${error.message}</span>`;
                 document.getElementById('last-update').textContent = 
-                    'Check browser console (F12) for details';
+                    'Check console (F12) for details';
             }
         }
 
-        // Initialize
-        debugLog('Starting pool temperature display...');
+        debugLog('Initializing...');
         getTemperature();
         setInterval(getTemperature, CONFIG.refreshInterval);
     </script>
