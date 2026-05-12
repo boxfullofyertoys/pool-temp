@@ -70,7 +70,7 @@
             sharedUUID: 'e44e3a48-0b42-42ed-ac28-b3b96d378837',
             sensorIndex: 0,
             refreshInterval: 60000,
-            corsProxy: 'https://api.allorigins.win/raw?url=',
+            corsProxy: 'https://corsproxy.io/?',
             debug: true
         };
 
@@ -90,7 +90,12 @@
                 
                 debugLog('Full request URL:', url);
                 
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': '*/*'
+                    }
+                });
                 debugLog('Response status:', response.status);
 
                 if (!response.ok) {
