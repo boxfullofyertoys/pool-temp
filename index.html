@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pool Temperature</title>
     <style>
+        /* ===== CUSTOMIZATION SECTION - EDIT THESE VALUES ===== */
+        
         body {
             margin: 0;
             padding: 0;
@@ -12,64 +14,75 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #000000;
+            background-color: #000000;    /* Background color */
             font-family: Arial, sans-serif;
             overflow: hidden;
         }
 
-        .temperature-container {
+        .container {
             text-align: center;
             width: 100%;
-            padding: 20px;
-        }
-
-        .temperature {
-            font-size: 200px;
-            color: #00FF00;
-            font-weight: bold;
-            margin: 0;
-            line-height: 1;
-            text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            padding: 40px;
         }
 
         .label {
-            font-size: 48px;
-            color: #FFFFFF;
+            font-size: 48px;              /* Title size */
+            color: #FFFFFF;               /* Title color */
             margin-bottom: 30px;
             font-weight: 300;
+            letter-spacing: 2px;
         }
 
-        .last-update {
-            font-size: 20px;
+        .temperature {
+            font-size: 200px;             /* Temperature size - CUSTOMIZE THIS */
+            color: #00FF00;               /* Temperature color - CUSTOMIZE THIS */
+            font-weight: bold;
+            margin: 20px 0;
+            line-height: 1;
+            text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);  /* Glow effect */
+        }
+
+        .info {
+            font-size: 24px;              /* Info text size */
+            color: #888888;               /* Info text color */
+            margin-top: 30px;
+        }
+
+        .battery {
+            font-size: 18px;
             color: #666666;
-            margin-top: 40px;
+            margin-top: 15px;
         }
 
         .error {
             color: #FF0000;
-            font-size: 36px;
+            font-size: 32px;
         }
 
         .loading {
             font-size: 48px;
             color: #666666;
         }
+
+        /* ===== END CUSTOMIZATION SECTION ===== */
     </style>
 </head>
 <body>
-    <div class="temperature-container">
+    <div class="container">
         <div class="label">Pool Temperature</div>
         <div class="temperature" id="temp-display">
             <span class="loading">Loading...</span>
         </div>
-        <div class="last-update" id="last-update"></div>
+        <div class="battery" id="battery-display"></div>
     </div>
 
     <script>
+        // ===== CONFIGURE YOUR WORKER URL HERE =====
+        const WORKER_URL = 'https://wirelesstag-worker.david-8a2.workers.dev/';
+        // ==========================================
+
         const CONFIG = {
-            // Replace this with your Cloudflare Worker URL after deploying
-            workerUrl: 'https://wirelesstag-worker.david-8a2.workers.dev/',
-            refreshInterval: 60000,
+            refreshInterval: 60000,  // Refresh every 60 seconds
             debug: true
         };
 
@@ -79,15 +92,15 @@
             }
         }
 
-        async function getTemperature() {
+        async function updateTemperature() {
             try {
-                if (CONFIG.workerUrl.includes('YOUR-WORKER-NAME')) {
-                    throw new Error('Please update workerUrl with your Cloudflare Worker URL');
+                if (WORKER_URL.includes('YOUR-WORKER-NAME')) {
+                    throw new Error('Please update WORKER_URL with your Cloudflare Worker URL');
                 }
 
-                debugLog('Fetching temperature from worker...');
+                debugLog('Fetching temperature...');
                 
-                const response = await fetch(CONFIG.workerUrl);
+                const response = await fetch(WORKER_URL);
                 debugLog('Response status:', response.status);
 
                 if (!response.ok) {
@@ -98,34 +111,29 @@
                 const data = await response.json();
                 debugLog('Data received:', data);
 
-                if (data.temperature_f) {
-                    const tempF = data.temperature_f;
-                    
-                    debugLog(`Temperature: ${tempF}°F`);
-                    
-                    document.getElementById('temp-display').innerHTML = `${tempF.toFixed(1)}°F`;
-                    
-                    const lastUpdate = new Date(data.last_update * 1000);
-                    document.getElementById('last-update').textContent = 
-                        `Last updated: ${lastUpdate.toLocaleString()}`;
-                    
-                    debugLog('Display updated successfully');
-                } else {
-                    throw new Error('Invalid data format received');
+                // Update temperature display
+                document.getElementById('temp-display').textContent = `${data.temperature_f.toFixed(1)}°F`;
+                
+                // Update battery display
+                if (data.battery_volt) {
+                    document.getElementById('battery-display').textContent = `Battery: ${data.battery_volt.toFixed(2)}V`;
                 }
+
+                debugLog('Display updated successfully');
 
             } catch (error) {
                 console.error('Error:', error);
                 document.getElementById('temp-display').innerHTML = 
                     `<span class="error">Error: ${error.message}</span>`;
-                document.getElementById('last-update').textContent = 
-                    'Check console (F12) for details';
             }
         }
 
-        debugLog('Initializing pool temperature display...');
-        getTemperature();
-        setInterval(getTemperature, CONFIG.refreshInterval);
+        // Initial load
+        debugLog('Initializing...');
+        updateTemperature();
+        
+        // Auto-refresh
+        setInterval(updateTemperature, CONFIG.refreshInterval);
     </script>
 </body>
 </html>
