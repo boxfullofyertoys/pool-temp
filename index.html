@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pool Temperature</title>
     <style>
+        /* ===== CUSTOMIZATION SECTION - EDIT THESE VALUES ===== */
+        
         body {
             margin: 0;
             padding: 0;
@@ -12,120 +14,69 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #000000;
+            background-color: #000000;    /* Background color - change as needed */
             font-family: Arial, sans-serif;
             overflow: hidden;
         }
 
-        .temperature-container {
-            text-align: center;
+        .container {
             width: 100%;
-            padding: 20px;
-        }
-
-        .temperature {
-            font-size: 200px;
-            color: #00FF00;
-            font-weight: bold;
-            margin: 0;
-            line-height: 1;
-            text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            max-width: 800px;             /* Maximum width of the display */
+            padding: 40px;                /* Spacing around the content */
+            text-align: center;
         }
 
         .label {
-            font-size: 48px;
-            color: #FFFFFF;
-            margin-bottom: 30px;
+            font-size: 48px;              /* Title text size */
+            color: #FFFFFF;               /* Title text color */
+            margin-bottom: 30px;          /* Space below title */
             font-weight: 300;
+            text-transform: uppercase;    /* Makes text UPPERCASE - remove this line for normal case */
+            letter-spacing: 2px;          /* Space between letters */
         }
 
-        .last-update {
-            font-size: 20px;
-            color: #666666;
-            margin-top: 40px;
+        .iframe-wrapper {
+            background-color: transparent; /* Background behind the iframe */
+            border-radius: 10px;          /* Rounded corners */
+            padding: 20px;                /* Space around iframe */
+            box-shadow: none;             /* Shadow effect - change to '0 4px 20px rgba(255,255,255,0.1)' for a glow */
         }
 
-        .error {
-            color: #FF0000;
-            font-size: 36px;
+        iframe {
+            border: none;
+            width: 100%;
+            height: 80px;                 /* Height of the iframe - adjust if content is cut off */
+            display: block;
+            margin: 0 auto;
         }
 
-        .loading {
-            font-size: 48px;
-            color: #666666;
+        /* Optional: Scale up the iframe content */
+        .iframe-wrapper.scaled iframe {
+            transform: scale(2);          /* Makes content 2x bigger - adjust as needed */
+            transform-origin: center;
+            height: 160px;                /* Adjust based on scale factor */
         }
+
+        /* ===== END CUSTOMIZATION SECTION ===== */
     </style>
 </head>
 <body>
-    <div class="temperature-container">
+    <div class="container">
         <div class="label">Pool Temperature</div>
-        <div class="temperature" id="temp-display">
-            <span class="loading">Loading...</span>
+        
+        <!-- Add 'scaled' class to the div below to make iframe content bigger -->
+        <div class="iframe-wrapper">
+            <iframe src="https://my.wirelesstag.net/ethSharedFrame.aspx?pic=1&hide_name=0&hide_temp=0&hide_rh=0&hide_lux=1&hide_updated=0&hide_signal=1&hide_battery=1&hide_battery_volt=0&hide_motion=1&uuids=e44e3a48-0b42-42ed-ac28-b3b96d378837" 
+                    scrolling="no"></iframe>
         </div>
-        <div class="last-update" id="last-update"></div>
     </div>
 
     <script>
-        const CONFIG = {
-            // Replace this with your Cloudflare Worker URL after deploying
-            workerUrl: 'https://wirelesstag-worker.david-8a2.workers.dev/',
-            refreshInterval: 60000,
-            debug: true
-        };
-
-        function debugLog(message, data = null) {
-            if (CONFIG.debug) {
-                console.log(`[DEBUG] ${message}`, data || '');
-            }
-        }
-
-        async function getTemperature() {
-            try {
-                if (CONFIG.workerUrl.includes('YOUR-WORKER-NAME')) {
-                    throw new Error('Please update workerUrl with your Cloudflare Worker URL');
-                }
-
-                debugLog('Fetching temperature from worker...');
-                
-                const response = await fetch(CONFIG.workerUrl);
-                debugLog('Response status:', response.status);
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `HTTP ${response.status}`);
-                }
-
-                const data = await response.json();
-                debugLog('Data received:', data);
-
-                if (data.temperature_f) {
-                    const tempF = data.temperature_f;
-                    
-                    debugLog(`Temperature: ${tempF}°F`);
-                    
-                    document.getElementById('temp-display').innerHTML = `${tempF.toFixed(1)}°F`;
-                    
-                    const lastUpdate = new Date(data.last_update * 1000);
-                    document.getElementById('last-update').textContent = 
-                        `Last updated: ${lastUpdate.toLocaleString()}`;
-                    
-                    debugLog('Display updated successfully');
-                } else {
-                    throw new Error('Invalid data format received');
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('temp-display').innerHTML = 
-                    `<span class="error">Error: ${error.message}</span>`;
-                document.getElementById('last-update').textContent = 
-                    'Check console (F12) for details';
-            }
-        }
-
-        debugLog('Initializing pool temperature display...');
-        getTemperature();
-        setInterval(getTemperature, CONFIG.refreshInterval);
+        // Auto-refresh the iframe every 60 seconds to get updated temperature
+        setInterval(function() {
+            const iframe = document.querySelector('iframe');
+            iframe.src = iframe.src;
+        }, 60000);
     </script>
 </body>
 </html>
