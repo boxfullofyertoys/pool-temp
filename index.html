@@ -67,10 +67,9 @@
 
     <script>
         const CONFIG = {
-            uuid: 'e44e3a48-0b42-42ed-ac28-b3b96d378837',
-            sensorName: 'Pool%20Temperature',  // URL encoded sensor name from your CSV link
+            // Replace this with your Cloudflare Worker URL after deploying
+            workerUrl: 'https://wirelesstag-worker.david-8a2.workers.dev/',
             refreshInterval: 60000,
-            corsProxy: 'https://corsproxy.io/?',
             debug: true
         };
 
@@ -80,91 +79,41 @@
             }
         }
 
-        function parseCSV(text) {
-            const lines = text.trim().split('\n');
-            if (lines.length < 2) return null;
-            
-            const headers = lines[0].split(',');
-            const values = lines[lines.length - 1].split(','); // Get most recent reading (last line)
-            
-            const data = {};
-            headers.forEach((header, index) => {
-                data[header.trim()] = values[index] ? values[index].trim() : null;
-            });
-            
-            return data;
-        }
-
         async function getTemperature() {
             try {
-                debugLog('Fetching temperature data from CSV...');
+                if (CONFIG.workerUrl.includes('YOUR-WORKER-NAME')) {
+                    throw new Error('Please update workerUrl with your Cloudflare Worker URL');
+                }
+
+                debugLog('Fetching temperature from worker...');
                 
-                // Use the CSV download link from WirelessTag
-                const csvUrl = `https://my.wirelesstag.net/ethDownloadTempCSV.aspx?uuid=${CONFIG.uuid}&name=${CONFIG.sensorName}`;
-                const url = `${CONFIG.corsProxy}${encodeURIComponent(csvUrl)}`;
-                
-                debugLog('Request URL:', url);
-                
-                const response = await fetch(url);
+                const response = await fetch(CONFIG.workerUrl);
                 debugLog('Response status:', response.status);
 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: Failed to fetch CSV data`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
                 }
 
-                const csvText = await response.text();
-                debugLog('CSV data received, length:', csvText.length);
-                debugLog('First 200 chars:', csvText.substring(0, 200));
-                
-                const data = parseCSV(csvText);
-                
-                if (!data) {
-                    throw new Error('Could not parse CSV data');
-                }
-                
-                debugLog('Parsed data:', data);
-                
-                // CSV typically has "Temperature" or "Temp" column
-                let tempF = null;
-                
-                // Try different possible column names
-                if (data['Temperature']) {
-                    tempF = parseFloat(data['Temperature']);
-                } else if (data['Temp']) {
-                    tempF = parseFloat(data['Temp']);
-                } else if (data['Value']) {
-                    tempF = parseFloat(data['Value']);
-                } else {
-                    // Try to find any column that looks like temperature
-                    for (let key in data) {
-                        if (key.toLowerCase().includes('temp')) {
-                            tempF = parseFloat(data[key]);
-                            break;
-                        }
-                    }
-                }
-                
-                if (tempF === null || isNaN(tempF)) {
-                    debugLog('Available columns:', Object.keys(data));
-                    throw new Error('Could not find temperature value in CSV. Check console for available columns.');
-                }
-                
-                debugLog(`Temperature: ${tempF}°F`);
-                
-                document.getElementById('temp-display').innerHTML = `${tempF.toFixed(1)}°F`;
-                
-                // Try to get timestamp
-                let timestamp = data['Date'] || data['Time'] || data['DateTime'] || data['Timestamp'];
-                if (timestamp) {
+                const data = await response.json();
+                debugLog('Data received:', data);
+
+                if (data.temperature_f) {
+                    const tempF = data.temperature_f;
+                    
+                    debugLog(`Temperature: ${tempF}°F`);
+                    
+                    document.getElementById('temp-display').innerHTML = `${tempF.toFixed(1)}°F`;
+                    
+                    const lastUpdate = new Date(data.last_update * 1000);
                     document.getElementById('last-update').textContent = 
-                        `Last updated: ${timestamp}`;
+                        `Last updated: ${lastUpdate.toLocaleString()}`;
+                    
+                    debugLog('Display updated successfully');
                 } else {
-                    document.getElementById('last-update').textContent = 
-                        `Last updated: ${new Date().toLocaleString()}`;
+                    throw new Error('Invalid data format received');
                 }
-                
-                debugLog('Display updated successfully');
-                
+
             } catch (error) {
                 console.error('Error:', error);
                 document.getElementById('temp-display').innerHTML = 
