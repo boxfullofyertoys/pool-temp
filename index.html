@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pool Temperature</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         /* ===== CUSTOMIZATION SECTION - EDIT THESE VALUES ===== */
         
@@ -15,7 +16,7 @@
             align-items: center;
             min-height: 100vh;
             background-color: #355e3b;    /* Background color */
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', sans-serif;
             overflow: hidden;
         }
 
@@ -27,30 +28,30 @@
 
         .label {
             font-size: 48px;              /* Title size */
-            color: #FFFFFF;               /* Title color */
-            margin-bottom: 30px;
+            color: #FFFFFF;               /* Title color - now white */
+            margin-top: 30px;             /* Space above title (moved below temp) */
             font-weight: 300;
             letter-spacing: 2px;
         }
 
         .temperature {
             font-size: 200px;             /* Temperature size - CUSTOMIZE THIS */
-            color: #00FF00;               /* Temperature color - CUSTOMIZE THIS */
+            color: #FFFFFF;               /* Temperature color - now white */
             font-weight: bold;
             margin: 20px 0;
             line-height: 1;
-            text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);  /* Glow effect */
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);  /* White glow effect */
         }
 
         .info {
             font-size: 24px;              /* Info text size */
-            color: #888888;               /* Info text color */
+            color: #FFFFFF;               /* Info text color - now white */
             margin-top: 30px;
         }
 
         .battery {
             font-size: 18px;
-            color: #666666;
+            color: #FFFFFF;               /* Battery color - now white */
             margin-top: 15px;
         }
 
@@ -61,7 +62,7 @@
 
         .loading {
             font-size: 48px;
-            color: #666666;
+            color: #FFFFFF;               /* Loading text - now white */
         }
 
         /* ===== END CUSTOMIZATION SECTION ===== */
@@ -69,10 +70,10 @@
 </head>
 <body>
     <div class="container">
-        <div class="label">Pool Temperature</div>
         <div class="temperature" id="temp-display">
             <span class="loading">Loading...</span>
         </div>
+        <div class="label">Pool Temperature</div>
     </div>
 
     <script>
